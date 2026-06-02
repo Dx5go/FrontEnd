@@ -1,0 +1,10 @@
+{
+  "name": "backend-dox",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "echo 'Use Vercel CLI for local testing'"
+  },
+  "dependencies": {
+    "mongodb": "^6.3.0"
+  }
+}
