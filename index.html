@@ -107,14 +107,14 @@
       const lowerUa = ua.toLowerCase();
 
       if (/iphone/.test(lowerUa)) {
-        const model = ua.match(/iPhone\s*([^;\)]+)/);
+        const model = ua.match(/iPhone\s*([^;)]+)/);
         return model ? model[0] : 'iPhone';
       }
       if (/ipad/.test(lowerUa)) {
         return 'iPad';
       }
       if (/android/.test(lowerUa)) {
-        const model = ua.match(/Android[^(]*;\s*([^;\)]+)/);
+        const model = ua.match(/Android[^(]*;\s*([^;)]+)/);
         if (model && model[1]) {
           return model[1].trim();
         }
@@ -129,15 +129,15 @@
         return pixel ? pixel[0] : 'Google Pixel';
       }
       if (/samsung/.test(lowerUa) || /sm-/.test(lowerUa) || /gt-/.test(lowerUa)) {
-        const match = ua.match(/(SM-[A-Z0-9]+|GT-[A-Z0-9]+|Galaxy[^;\)]+)/i);
+        const match = ua.match(/(SM-[A-Z0-9]+|GT-[A-Z0-9]+|Galaxy[^;)]+)/i);
         return match ? match[0] : 'Samsung device';
       }
       if (/oneplus/.test(lowerUa)) {
-        const model = ua.match(/OnePlus\s*[^;\)]+/i);
+        const model = ua.match(/OnePlus\s*[^;)]+/i);
         return model ? model[0] : 'OnePlus device';
       }
       if (/huawei/.test(lowerUa) || /honor/.test(lowerUa)) {
-        const model = ua.match(/(HUAWEI|HONOR)\s*[^;\)]+/i);
+        const model = ua.match(/(HUAWEI|HONOR)\s*[^;)]+/i);
         return model ? model[0] : 'Huawei device';
       }
       if (/xiaomi/.test(lowerUa) || /redmi/.test(lowerUa)) {
